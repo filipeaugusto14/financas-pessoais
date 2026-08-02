@@ -41,7 +41,19 @@ function addLancamento(payload) {
     var linhas = _gerarLinhasDados(dados);
     _appendLinhasDados(abas.dados, linhas);
 
-    return { ok: true, id: id, linhasDados: linhas.length };
+    // 3) se marcado como despesa fixa (e não parcelado), cria/atualiza o modelo
+    var fixaId = null;
+    if (payload.fixa && dados.parcelas <= 1 && _norm(dados.tipo) === 'DESPESA') {
+      try {
+        fixaId = upsertFixa({
+          descricao: dados.descricao || dados.subcategoria,
+          categoria: dados.categoria, subcategoria: dados.subcategoria,
+          valorBase: dados.valor, dia: dados.data.getDate(), ativo: true
+        });
+      } catch (e) { /* não impede o lançamento */ }
+    }
+
+    return { ok: true, id: id, linhasDados: linhas.length, fixaId: fixaId };
   } finally {
     lock.releaseLock();
   }

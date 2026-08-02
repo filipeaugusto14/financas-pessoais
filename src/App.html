@@ -67,6 +67,7 @@ function irPara(tela){
   $all('.tab').forEach(function(b){ b.classList.toggle('ativo', b.dataset.tela===tela); });
   $('#periodoTopo').classList.toggle('hidden', tela!=='relatorio');
   if (tela==='relatorio' && !Estado.relatorioCarregado){ carregarRelatorio(); }
+  if (tela==='fixas' && !Estado.fixasCarregado){ carregarFixas(); }
 }
 
 /* =====================================================================
@@ -84,6 +85,7 @@ document.addEventListener('DOMContentLoaded', function(){
     prepararPeriodoPadrao();
     montarSugestoes();
     montarCategorias();
+    atualizarVisibilidadeFixa();
     renderUltimos();
   }).catch(function(e){ toast(e, true); });
 });
@@ -125,6 +127,8 @@ function ligarEventos(){
   // modal
   $('#modalCancelar').addEventListener('click', fecharModal);
   $('#modal').addEventListener('click', function(e){ if(e.target===$('#modal')) fecharModal(); });
+  // fixas
+  $('#addFixaBtn').addEventListener('click', function(){ abrirModalFixa(); });
 }
 
 /* =====================================================================
@@ -135,6 +139,13 @@ function setTipo(tipo){
   $all('#segTipo .seg-btn').forEach(function(b){ b.classList.toggle('ativo', b.dataset.tipo===tipo); });
   document.body.classList.toggle('tipo-receita', tipo==='Receita');
   montarCategorias();
+  atualizarVisibilidadeFixa();
+}
+function atualizarVisibilidadeFixa(){
+  var p = parseInt($('#parcelas').value,10)||1;
+  var mostrar = Estado.tipo==='Despesa' && p<=1;
+  $('#linhaFixa').classList.toggle('hidden', !mostrar);
+  if (!mostrar) $('#fixa').checked = false;
 }
 
 function montarCategorias(){
@@ -185,6 +196,7 @@ function atualizarPreviewParcelas(){
     box.textContent = p+'× de '+brl(base)+' · última em '+mm;
     box.classList.remove('hidden');
   } else { box.classList.add('hidden'); }
+  atualizarVisibilidadeFixa();
 }
 
 function salvarLancamento(ev){
@@ -196,7 +208,8 @@ function salvarLancamento(ev){
     categoria: $('#categoria').value,
     subcategoria: $('#subcategoria').value,
     tipo: Estado.tipo,
-    parcelas: parseInt($('#parcelas').value,10)||1
+    parcelas: parseInt($('#parcelas').value,10)||1,
+    fixa: $('#fixa').checked && Estado.tipo==='Despesa' && (parseInt($('#parcelas').value,10)||1)<=1
   };
   if (!(payload.valor>0)) return toast('Informe um valor.', true);
   if (!payload.categoria || !payload.subcategoria) return toast('Escolha categoria e subcategoria.', true);
@@ -204,11 +217,13 @@ function salvarLancamento(ev){
   var btn = $('#salvar'); btn.disabled = true; btn.textContent = 'Salvando…';
   var acao = Estado.editId ? run('editLancamento', Estado.editId, payload) : run('addLancamento', payload);
   acao.then(function(){
-    toast(Estado.editId ? 'Lançamento atualizado!' : 'Lançamento salvo!');
+    toast(Estado.editId ? 'Lançamento atualizado!' : (payload.fixa ? 'Salvo e adicionado às fixas!' : 'Lançamento salvo!'));
     aprenderSugestao(payload);
     cancelarEdicao();
     limparCamposValor();
+    $('#fixa').checked = false;
     Estado.relatorioCarregado = false;
+    Estado.fixasCarregado = false;
     return recarregarUltimos();
   }).catch(function(e){ toast(e, true); })
     .then(function(){ btn.disabled=false; btn.textContent='Salvar lançamento'; });
@@ -549,6 +564,167 @@ function graficoFuturas(futuras){
       datasets:[{ label:'Comprometido', data:futuras.map(function(f){return f.valor;}), backgroundColor:'#f59e0b', borderRadius:4 }] },
     options:Object.assign({}, OPCOES_BASE, { scales:{ y:{ ticks:{ callback:function(v){return brlCurto(v);} } } } })
   });
+}
+
+/* =====================================================================
+   Despesas Fixas
+   ===================================================================== */
+function carregarFixas(){
+  $('#fixasLista').innerHTML = '<div class="carregando">Carregando…</div>';
+  return run('getControleFixas').then(function(ctrl){
+    Estado.fixas = ctrl; Estado.fixasCarregado = true;
+    Estado.fixasMesSel = ctrl.mesAtual;
+    renderFixasMeses();
+    renderFixasMes();
+    renderGerenciarFixas();
+  }).catch(function(e){ $('#fixasLista').innerHTML=''; toast(e, true); });
+}
+
+function mesAtualObj(){ return (Estado.fixas.meses||[]).find(function(m){ return m.mes===Estado.fixasMesSel; }) || Estado.fixas.meses[0]; }
+
+function renderFixasMeses(){
+  var el = $('#fixasMeses');
+  el.innerHTML = Estado.fixas.meses.map(function(m){
+    return '<button type="button" class="chip'+(m.mes===Estado.fixasMesSel?' ativo':'')+'" data-mes="'+m.mes+'">'
+      + esc(m.label)+'</button>';
+  }).join('');
+  $all('#fixasMeses .chip').forEach(function(c){
+    c.addEventListener('click', function(){ Estado.fixasMesSel=c.dataset.mes; renderFixasMeses(); renderFixasMes(); });
+  });
+}
+
+function renderFixasMes(){
+  var m = mesAtualObj();
+  if (!m){ $('#fixasLista').innerHTML='<p class="lanc-meta">Sem dados.</p>'; return; }
+  $('#fixasMesNome').textContent = m.label;
+  $('#fixasTotal').textContent = brl(m.total);
+  $('#fixasQuebra').textContent = 'Fixas: '+brl(m.totalFixas)+'  ·  Parcelamentos longos: '+brl(m.totalParcelas);
+
+  // lista de fixas com validação
+  if (!m.fixas.length){
+    $('#fixasLista').innerHTML = '<p class="lanc-meta">Nenhuma despesa fixa ativa. Marque uma despesa como fixa ao lançar, ou clique em “＋ Nova fixa”.</p>';
+  } else {
+    $('#fixasLista').innerHTML = m.fixas.map(function(f){
+      var selo = f.status==='validado'
+        ? '<span class="selo validado">✓ validado</span>'
+        : '<span class="selo previsto">previsto</span>';
+      var valInput = (f.status==='validado'? f.validado : f.previsto);
+      return '<div class="fixa-item" data-id="'+f.fixaId+'">'
+        + '<div class="fixa-top"><div class="fixa-nome">'+esc(f.descricao)
+          + '<small>'+esc(f.categoria)+' › '+esc(f.subcategoria)+'</small></div>'
+        + '<div class="fixa-valor">'+brl(f.valor)+' '+selo+'</div></div>'
+        + '<div class="fixa-acoes">'
+          + '<input type="text" class="fx-val" value="'+brl(valInput)+'" inputmode="numeric">'
+          + '<button type="button" class="btn-mini ok" onclick="validarFixaUI(\''+f.fixaId+'\')">Validar</button>'
+          + (f.status==='validado' ? '<button type="button" class="btn-mini ghost" onclick="desvalidarFixaUI(\''+f.fixaId+'\')">Desfazer</button>' : '')
+        + '</div></div>';
+    }).join('');
+    // máscara nos inputs
+    $all('#fixasLista .fx-val').forEach(function(inp){
+      inp.addEventListener('input', function(){ inp.value = formatarValorInput(inp.value) || 'R$ 0,00'; });
+    });
+  }
+
+  // parcelamentos longos
+  if (!m.parcelas.length){
+    $('#cardParcelasLongas').classList.add('hidden');
+  } else {
+    $('#cardParcelasLongas').classList.remove('hidden');
+    $('#parcelasLongasLista').innerHTML = m.parcelas.map(function(p){
+      return '<div class="fixa-item"><div class="fixa-top">'
+        + '<div class="fixa-nome">'+esc(p.descricao)+'<small>'+esc(p.categoria)+' › '+esc(p.subcategoria)+'</small></div>'
+        + '<div class="fixa-valor">'+brl(p.valor)+'</div></div></div>';
+    }).join('');
+  }
+}
+
+function validarFixaUI(fixaId){
+  var item = document.querySelector('.fixa-item[data-id="'+fixaId+'"] .fx-val');
+  var valor = centavosParaNumero(item.value);
+  if (!(valor>0)) return toast('Informe um valor.', true);
+  run('validarFixa', fixaId, Estado.fixasMesSel, valor).then(function(){
+    toast('Validado!');
+    aplicarValidacaoLocal(fixaId, Estado.fixasMesSel, valor, 'validado');
+    renderFixasMeses(); renderFixasMes();
+  }).catch(function(e){ toast(e, true); });
+}
+function desvalidarFixaUI(fixaId){
+  run('desvalidarFixa', fixaId, Estado.fixasMesSel).then(function(){
+    toast('Voltou para previsto.');
+    var f = mesAtualObj().fixas.find(function(x){ return x.fixaId===fixaId; });
+    aplicarValidacaoLocal(fixaId, Estado.fixasMesSel, f?f.previsto:0, 'previsto');
+    renderFixasMeses(); renderFixasMes();
+  }).catch(function(e){ toast(e, true); });
+}
+// atualiza o estado local sem recarregar tudo do servidor
+function aplicarValidacaoLocal(fixaId, mes, valor, status){
+  var m = Estado.fixas.meses.find(function(x){ return x.mes===mes; });
+  if (!m) return;
+  var f = m.fixas.find(function(x){ return x.fixaId===fixaId; });
+  if (!f) return;
+  f.status = status;
+  f.validado = status==='validado' ? valor : null;
+  f.valor = status==='validado' ? valor : f.previsto;
+  m.totalFixas = _round2local(m.fixas.reduce(function(a,x){ return a+x.valor; },0));
+  m.total = _round2local(m.totalFixas + m.totalParcelas);
+}
+function _round2local(n){ return Math.round((n+Number.EPSILON)*100)/100; }
+
+function renderGerenciarFixas(){
+  var t = Estado.fixas.templates;
+  if (!t.length){ $('#gerenciarFixas').innerHTML='<p class="lanc-meta">Nenhuma despesa fixa cadastrada.</p>'; return; }
+  $('#gerenciarFixas').innerHTML = t.map(function(f){
+    return '<div class="gerenciar-item'+(f.ativo?'':' g-inativo')+'">'
+      + '<div class="g-main"><strong>'+esc(f.descricao)+'</strong>'
+        + '<small>'+esc(f.categoria)+' › '+esc(f.subcategoria)+' · base '+brl(f.valorBase)+' · dia '+f.dia+'</small></div>'
+      + '<button class="icon-btn" title="'+(f.ativo?'Desativar':'Ativar')+'" onclick="toggleFixa(\''+f.id+'\','+(!f.ativo)+')">'+(f.ativo?'⏸':'▶')+'</button>'
+      + '<button class="icon-btn" title="Editar" onclick="abrirModalFixa(\''+f.id+'\')">✎</button>'
+      + '<button class="icon-btn" title="Excluir" onclick="excluirFixa(\''+f.id+'\')">🗑</button>'
+      + '</div>';
+  }).join('');
+}
+function toggleFixa(id, ativo){
+  run('toggleFixaAtivo', id, ativo).then(function(){ Estado.fixasCarregado=false; carregarFixas(); }).catch(function(e){ toast(e,true); });
+}
+function excluirFixa(id){
+  var f = Estado.fixas.templates.find(function(x){ return x.id===id; });
+  if (!confirm('Excluir a despesa fixa "'+(f?f.descricao:'')+'"? As validações dela também serão removidas.')) return;
+  run('deleteFixa', id).then(function(){ toast('Excluída.'); Estado.fixasCarregado=false; carregarFixas(); }).catch(function(e){ toast(e,true); });
+}
+
+function abrirModalFixa(id){
+  var f = id ? Estado.fixas.templates.find(function(x){ return x.id===id; }) : null;
+  var cats = Object.keys((Estado.taxonomia.porTipo.Despesa)||{}).sort();
+  $('#modalTitulo').textContent = f ? 'Editar despesa fixa' : 'Nova despesa fixa';
+  $('#modalCorpo').innerHTML =
+    '<label class="campo"><span class="rotulo">Descrição</span><input id="fxDesc" value="'+esc(f?f.descricao:'')+'" placeholder="Ex.: Aluguel"></label>'
+    + '<div class="linha2">'
+      + '<label class="campo"><span class="rotulo">Categoria</span><select id="fxCat">'
+        + cats.map(function(c){ return '<option'+(f&&f.categoria===c?' selected':'')+'>'+esc(c)+'</option>'; }).join('')+'</select></label>'
+      + '<label class="campo"><span class="rotulo">Subcategoria</span><select id="fxSub"></select></label>'
+    + '</div>'
+    + '<div class="linha2">'
+      + '<label class="campo"><span class="rotulo">Valor base</span><input id="fxVal" inputmode="numeric" value="'+(f?brl(f.valorBase):'')+'" placeholder="R$ 0,00"></label>'
+      + '<label class="campo"><span class="rotulo">Dia venc.</span><input id="fxDia" type="number" min="1" max="28" value="'+(f?f.dia:'5')+'"></label>'
+    + '</div>';
+  $('#modal').classList.remove('hidden');
+  function preencherSubs(){
+    var cat = $('#fxCat').value;
+    var subs = ((Estado.taxonomia.porTipo.Despesa||{})[cat]||[]).slice().sort();
+    $('#fxSub').innerHTML = subs.map(function(s){ return '<option'+(f&&f.subcategoria===s?' selected':'')+'>'+esc(s)+'</option>'; }).join('');
+  }
+  preencherSubs();
+  $('#fxCat').addEventListener('change', preencherSubs);
+  $('#fxVal').addEventListener('input', function(){ this.value = formatarValorInput(this.value); });
+  $('#modalOk').onclick = function(){
+    var payload = { descricao:$('#fxDesc').value.trim(), categoria:$('#fxCat').value, subcategoria:$('#fxSub').value,
+      valorBase:centavosParaNumero($('#fxVal').value), dia:parseInt($('#fxDia').value,10)||5, ativo:true };
+    if (!payload.descricao) return toast('Informe a descrição.', true);
+    $('#modalOk').disabled = true;
+    var op = f ? run('updateFixa', f.id, payload) : run('addFixaManual', payload);
+    op.then(function(){ fecharModal(); toast('Salvo!'); Estado.fixasCarregado=false; carregarFixas(); })
+      .catch(function(e){ toast(e, true); }).then(function(){ $('#modalOk').disabled=false; });
+  };
 }
 
 /* --------- util --------- */

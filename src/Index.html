@@ -65,6 +65,14 @@
         </div>
         <button type="button" id="novaSub" class="link-btn">＋ Nova subcategoria</button>
 
+        <label class="switch-linha" id="linhaFixa">
+          <span>
+            <strong>Despesa fixa</strong>
+            <small>Entra no controle de obrigações e projeta 12 meses</small>
+          </span>
+          <span class="switch"><input type="checkbox" id="fixa"><span class="slider"></span></span>
+        </label>
+
         <div class="acoes">
           <button type="submit" id="salvar" class="btn-principal">Salvar lançamento</button>
           <button type="button" id="cancelarEdicao" class="btn-secundario hidden">Cancelar edição</button>
@@ -100,10 +108,42 @@
       </div>
     </section>
 
+    <!-- ============ TELA: FIXAS ============ -->
+    <section id="tela-fixas" class="tela">
+      <div class="card destaque-fixas">
+        <div class="kpi-rot">Você começa <span id="fixasMesNome">o mês</span> devendo</div>
+        <div id="fixasTotal" class="fixas-total">R$ 0,00</div>
+        <div id="fixasQuebra" class="fixas-quebra"></div>
+      </div>
+
+      <div class="card periodo">
+        <div class="chips" id="fixasMeses"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Despesas fixas</h2>
+          <button type="button" id="addFixaBtn" class="link-btn">＋ Nova fixa</button></div>
+        <div id="fixasLista"></div>
+      </div>
+
+      <div class="card" id="cardParcelasLongas">
+        <div class="card-head"><h2>Parcelamentos longos (&gt;12x)</h2></div>
+        <div id="parcelasLongasLista"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Gerenciar despesas fixas</h2></div>
+        <div id="gerenciarFixas"></div>
+      </div>
+    </section>
+
     <!-- Navegação inferior -->
     <nav class="tabbar">
       <button class="tab ativo" data-tela="lancar">
         <span class="tab-ico">＋</span><span>Lançar</span>
+      </button>
+      <button class="tab" data-tela="fixas">
+        <span class="tab-ico">📌</span><span>Fixas</span>
       </button>
       <button class="tab" data-tela="relatorio">
         <span class="tab-ico">▚</span><span>Relatório</span>

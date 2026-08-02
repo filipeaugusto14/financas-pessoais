@@ -192,6 +192,45 @@
 
   .carregando { text-align: center; color: var(--texto-suave); padding: 40px 0; }
 
+  /* Switch (despesa fixa) */
+  .switch-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: #f8fafc; border: 1px solid var(--borda); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; cursor: pointer; }
+  .switch-linha strong { display: block; font-size: 14px; }
+  .switch-linha small { color: var(--texto-suave); font-size: 12px; }
+  .switch { position: relative; width: 48px; height: 28px; flex: 0 0 auto; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider { position: absolute; inset: 0; background: #cbd5e1; border-radius: 999px; transition: .2s; }
+  .switch .slider::before { content: ''; position: absolute; height: 22px; width: 22px; left: 3px; top: 3px;
+    background: #fff; border-radius: 50%; transition: .2s; box-shadow: var(--sombra); }
+  .switch input:checked + .slider { background: var(--primaria); }
+  .switch input:checked + .slider::before { transform: translateX(20px); }
+
+  /* Tela Fixas */
+  .destaque-fixas { background: linear-gradient(135deg, #0f172a, #1e3a8a); color: #fff; border: none; }
+  .destaque-fixas .kpi-rot { color: rgba(255,255,255,.75); }
+  .fixas-total { font-size: 34px; font-weight: 800; margin: 4px 0 6px; }
+  .fixas-quebra { font-size: 13px; color: rgba(255,255,255,.85); }
+  .fixa-item { padding: 12px 4px; border-bottom: 1px solid var(--borda); }
+  .fixa-item:last-child { border-bottom: none; }
+  .fixa-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .fixa-nome { font-weight: 600; }
+  .fixa-nome small { display: block; font-weight: 400; color: var(--texto-suave); font-size: 12px; }
+  .fixa-valor { font-weight: 700; white-space: nowrap; }
+  .selo { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .selo.previsto { background: #fef9c3; color: #854d0e; }
+  .selo.validado { background: var(--receita-bg); color: var(--receita); }
+  .fixa-acoes { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .fixa-acoes input { width: 130px; padding: 8px 10px; font-size: 14px; }
+  .btn-mini { border: none; border-radius: 10px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn-mini.ok { background: var(--receita); color: #fff; }
+  .btn-mini.ghost { background: #eef2f7; color: var(--texto); }
+  .gerenciar-item { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--borda); }
+  .gerenciar-item:last-child { border-bottom: none; }
+  .gerenciar-item .g-main { flex: 1 1 auto; min-width: 0; }
+  .gerenciar-item .g-main strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gerenciar-item .g-main small { color: var(--texto-suave); font-size: 12px; }
+  .g-inativo { opacity: .5; }
+
   /* Toast */
   .toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(20px);
     background: #0f172a; color: #fff; padding: 12px 18px; border-radius: 12px; font-weight: 600;

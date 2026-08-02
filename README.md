@@ -16,6 +16,8 @@ O app **mantém a aba `DADOS`** atualizada (valores com sinal, parcelas explodid
 | Lançamentos (entrada) | O que você digita | `DATA · VALOR (total) · DESCRIÇÃO · SUBCATEGORIA · CATEGORIA · TIPO · PARCELAS · ENVIADO PARA DADOS · ID` |
 | `DADOS` | Consolidado que o relatório lê | `DATA · VALOR (com sinal) · DESCRIÇÃO · SUBCATEGORIA · CATEGORIA · TIPO · ID` |
 | Taxonomia | Referência `SUBCATEGORIA → CATEGORIA → TIPO` | — |
+| `FIXAS` | Modelos de despesa fixa (criada pelo app) | `ID · DESCRIÇÃO · CATEGORIA · SUBCATEGORIA · VALOR_BASE · DIA · ATIVO` |
+| `FIXAS_PROJECAO` | Validações/ajustes por mês (criada pelo app) | `FIXA_ID · MES · VALOR · STATUS · ATUALIZADO_EM` |
 
 > A coluna **`ID`** é adicionada automaticamente (pela função `setup()`) ao final das abas de Lançamentos e `DADOS`. É um campo extra ignorado pelo Looker; serve para o app editar/excluir com segurança.
 
@@ -67,6 +69,7 @@ Para atualizar depois de mudar o código: `clasp push` e (se mudou o comportamen
 | `Dados.gs` | Explosão de parcelas → aba `DADOS` |
 | `Taxonomia.gs` | Categorias/subcategorias para o formulário |
 | `Relatorio.gs` | Agregações do dashboard por período |
+| `Fixas.gs` | Controle de despesas fixas (projeção 12 meses + validação) e parcelamentos longos |
 | `Index.html` · `Styles.html` · `App.html` | Interface (formulário + dashboard) |
 
 ---
@@ -76,3 +79,12 @@ Para atualizar depois de mudar o código: `clasp push` e (se mudou o comportamen
 - **Parcelas:** ao lançar `R$ 300` em `3x`, a aba `DADOS` recebe 3 linhas mensais de `-100,00` com `(1/3) … (3/3)`. O arredondamento é em centavos e a diferença cai na última parcela (a soma bate com o total).
 - **Sinal:** despesa entra negativa na `DADOS`, receita positiva.
 - **Privacidade:** o app é publicado com acesso "Somente eu"; os dados nunca saem da sua conta Google.
+
+## Despesas fixas (aba "Fixas")
+
+Controle do que você paga todo mês — "já início o mês devendo isso".
+
+- **Marcar como fixa:** no formulário de despesa (parcela 1), ligue o botão **Despesa fixa**. Isso registra a despesa normalmente e cria um *modelo* recorrente.
+- **Projeção de 12 meses:** o app projeta cada fixa para os próximos 12 meses usando o valor base. Você **valida mês a mês** e pode **ajustar o valor** (aluguel, consórcio etc. variam). Só o que você valida fica gravado; o previsto é calculado na hora.
+- **Parcelamentos longos (> 12x):** aparecem automaticamente no painel (lidos da `DADOS`), somados ao total do mês. Nada a validar — já foram todos lançados no registro.
+- **Validar ≠ pagar:** validar apenas confirma/ajusta o valor planejado; não cria lançamento na `DADOS` (evita conflito com o registro real do pagamento).

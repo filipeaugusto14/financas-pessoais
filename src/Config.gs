@@ -28,6 +28,11 @@ const SHEET_OVERRIDES = {
 // Nome da coluna técnica adicionada pelo app (para editar/excluir com segurança).
 const COL_ID = 'ID';
 
+// Abas gerenciadas pelo app (criadas pelo setup) para o controle de despesas fixas.
+const SHEET_FIXAS = 'FIXAS';            // modelos de despesa fixa
+const SHEET_FIXAS_PROJ = 'FIXAS_PROJECAO'; // validações/ajustes por mês
+const LIMITE_PARCELA_LONGA = 12;        // parcelamentos ACIMA disso contam como obrigação longa
+
 // ------------------------------------------------------------------
 // Utilidades gerais
 // ------------------------------------------------------------------
@@ -260,10 +265,13 @@ function setup() {
   var abas = _detectarAbas();
   _garantirColunaId(abas.entrada);
   _garantirColunaId(abas.dados);
+  _sheetFixas();      // cria a aba FIXAS se faltar
+  _sheetProjecao();   // cria a aba FIXAS_PROJECAO se faltar
   var msg = 'setup OK\n' +
     '- Entrada: ' + abas.entrada.getName() + '\n' +
     '- DADOS:   ' + abas.dados.getName() + '\n' +
-    '- Taxonomia: ' + (abas.taxonomia ? abas.taxonomia.getName() : '(não encontrada)');
+    '- Taxonomia: ' + (abas.taxonomia ? abas.taxonomia.getName() : '(não encontrada)') + '\n' +
+    '- ' + SHEET_FIXAS + ' e ' + SHEET_FIXAS_PROJ + ' prontas.';
   Logger.log(msg);
   return msg;
 }
