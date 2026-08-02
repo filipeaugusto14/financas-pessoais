@@ -59,16 +59,26 @@ function _novoId() {
   return 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-/** Converte um valor de célula em Date (aceita Date ou string dd/MM/yyyy). */
+/**
+ * Converte um valor de célula/entrada em Date LOCAL.
+ * Aceita Date, ISO 'yyyy-MM-dd' (do <input type=date>) e 'dd/MM/yyyy'.
+ * IMPORTANTE: 'yyyy-MM-dd' é tratado como data local — nunca via new Date(str),
+ * que interpretaria como UTC e voltaria 1 dia no fuso de São Paulo.
+ */
 function _paraData(v) {
   if (v instanceof Date && !isNaN(v)) return v;
   if (typeof v === 'string') {
-    var m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    var s = v.trim();
+    var iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (iso) {
+      return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    }
+    var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
     if (m) {
       var ano = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
       return new Date(ano, Number(m[2]) - 1, Number(m[1]));
     }
-    var d = new Date(v);
+    var d = new Date(s);
     if (!isNaN(d)) return d;
   }
   return null;
