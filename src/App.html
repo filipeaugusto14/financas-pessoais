@@ -653,17 +653,22 @@ function validarFixaUI(fixaId){
   var valor = centavosParaNumero(item.value);
   if (!(valor>0)) return toast('Informe um valor.', true);
   run('validarFixa', fixaId, Estado.fixasMesSel, valor).then(function(){
-    toast('Validado!');
+    toast('Validado e lançado!');
     aplicarValidacaoLocal(fixaId, Estado.fixasMesSel, valor, 'validado');
+    Estado.relatorioCarregado = false; // um lançamento foi criado na DADOS
     renderFixasMeses(); renderFixasMes();
+    recarregarUltimos();
   }).catch(function(e){ toast(e, true); });
 }
 function desvalidarFixaUI(fixaId){
+  if (!confirm('Desfazer a validação também remove o lançamento correspondente na aba de dados. Continuar?')) return;
   run('desvalidarFixa', fixaId, Estado.fixasMesSel).then(function(){
-    toast('Voltou para previsto.');
+    toast('Validação desfeita (lançamento removido).');
     var f = mesAtualObj().fixas.find(function(x){ return x.fixaId===fixaId; });
     aplicarValidacaoLocal(fixaId, Estado.fixasMesSel, f?f.previsto:0, 'previsto');
+    Estado.relatorioCarregado = false;
     renderFixasMeses(); renderFixasMes();
+    recarregarUltimos();
   }).catch(function(e){ toast(e, true); });
 }
 // atualiza o estado local sem recarregar tudo do servidor

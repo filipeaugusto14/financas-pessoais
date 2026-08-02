@@ -50,6 +50,8 @@ function addLancamento(payload) {
           categoria: dados.categoria, subcategoria: dados.subcategoria,
           valorBase: dados.valor, dia: dados.data.getDate(), ativo: true
         });
+        // marca o mês do registro como validado e já vinculado a este lançamento
+        _upsertProjecao(fixaId, _chaveMes(dados.data), { valor: dados.valor, status: 'validado', lancId: id });
       } catch (e) { /* não impede o lançamento */ }
     }
 

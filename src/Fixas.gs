@@ -12,7 +12,7 @@
  */
 
 var HEADER_FIXAS = ['ID', 'DESCRIÇÃO', 'CATEGORIA', 'SUBCATEGORIA', 'VALOR_BASE', 'DIA', 'ATIVO', 'FREQUENCIA', 'MES_BASE'];
-var HEADER_PROJ = ['FIXA_ID', 'MES', 'VALOR', 'STATUS', 'ATUALIZADO_EM'];
+var HEADER_PROJ = ['FIXA_ID', 'MES', 'VALOR', 'STATUS', 'ATUALIZADO_EM', 'LANC_ID'];
 
 // ------------------------------------------------------------------
 // Acesso às abas (com migração automática de colunas)
@@ -154,27 +154,100 @@ function _acharProjRow(tp, fixaId, mes) {
   });
 }
 
-function validarFixa(fixaId, mes, valor) {
-  if (!fixaId || !mes) throw new Error('Dados incompletos.');
-  var v = _round2(Number(String(valor).replace(',', '.')) || 0);
+/** Busca um modelo de fixa pelo ID. */
+function _templateById(id) {
+  var t = _lerTabela(_sheetFixas());
+  var r = t.rows.find(function (x) { return String(x.vals[t.col['ID']]) === String(id); });
+  if (!r) return null;
+  return {
+    id: id,
+    descricao: String(r.vals[t.col['DESCRICAO']] || ''),
+    categoria: String(r.vals[t.col['CATEGORIA']] || ''),
+    subcategoria: String(r.vals[t.col['SUBCATEGORIA']] || ''),
+    dia: parseInt(r.vals[t.col['DIA']], 10) || 1
+  };
+}
+
+/** Data de referência (vencimento) de uma fixa num mês 'yyyy-MM'. */
+function _dataRefFixa(mes, dia) {
+  var p = String(mes).split('-');
+  var y = parseInt(p[0], 10), m = parseInt(p[1], 10);
+  var ult = new Date(y, m, 0).getDate();
+  var d = Math.min(dia || 1, ult);
+  return new Date(y, m - 1, d);
+}
+
+/** Cria/atualiza a linha de override na FIXAS_PROJECAO. */
+function _upsertProjecao(fixaId, mes, dados) {
   var shp = _sheetProjecao();
   var tp = _lerTabela(shp);
   var existente = _acharProjRow(tp, fixaId, mes);
   var agora = new Date();
   if (existente) {
-    _setCel(shp, existente.row, tp.col['VALOR'], v);
-    _setCel(shp, existente.row, tp.col['STATUS'], 'validado');
+    if (dados.valor != null) _setCel(shp, existente.row, tp.col['VALOR'], dados.valor);
+    if (dados.status != null) _setCel(shp, existente.row, tp.col['STATUS'], dados.status);
     _setCel(shp, existente.row, tp.col['ATUALIZADO_EM'], agora);
-  } else {
-    var linha = new Array(tp.ncols).fill('');
-    linha[tp.col['FIXA_ID']] = fixaId; linha[tp.col['MES']] = mes;
-    linha[tp.col['VALOR']] = v; linha[tp.col['STATUS']] = 'validado'; linha[tp.col['ATUALIZADO_EM']] = agora;
-    shp.appendRow(linha);
+    if (dados.lancId != null) _setCel(shp, existente.row, tp.col['LANC_ID'], dados.lancId);
+    return;
   }
-  return { ok: true, valor: v };
+  var linha = new Array(tp.ncols).fill('');
+  linha[tp.col['FIXA_ID']] = fixaId;
+  linha[tp.col['MES']] = mes;
+  linha[tp.col['VALOR']] = dados.valor != null ? dados.valor : '';
+  linha[tp.col['STATUS']] = dados.status || 'validado';
+  linha[tp.col['ATUALIZADO_EM']] = agora;
+  linha[tp.col['LANC_ID']] = dados.lancId || '';
+  shp.appendRow(linha);
 }
 
+/** Lê o LANC_ID vinculado a (fixa, mês), se houver. */
+function _lancIdDaProjecao(fixaId, mes) {
+  var tp = _lerTabela(_sheetProjecao());
+  var r = _acharProjRow(tp, fixaId, mes);
+  return r ? String(r.vals[tp.col['LANC_ID']] || '') : '';
+}
+
+/**
+ * Valida uma fixa num mês: grava o override E cria/atualiza o lançamento real
+ * na aba DADOS (com a data de referência e o valor confirmado).
+ */
+function validarFixa(fixaId, mes, valor) {
+  if (!fixaId || !mes) throw new Error('Dados incompletos.');
+  var v = _round2(Number(String(valor).replace(',', '.')) || 0);
+  if (!(v > 0)) throw new Error('Informe um valor maior que zero.');
+
+  var tpl = _templateById(fixaId);
+  if (!tpl) throw new Error('Despesa fixa não encontrada.');
+
+  var refData = _dataRefFixa(mes, tpl.dia);
+  var payload = {
+    data: Utilities.formatDate(refData, TZ, 'yyyy-MM-dd'),
+    valor: v,
+    descricao: tpl.descricao,
+    categoria: tpl.categoria,
+    subcategoria: tpl.subcategoria,
+    tipo: 'Despesa',
+    parcelas: 1,
+    fixa: false
+  };
+
+  // já existe lançamento vinculado? edita; senão cria
+  var lancId = _lancIdDaProjecao(fixaId, mes);
+  if (lancId) {
+    try { editLancamento(lancId, payload); }
+    catch (e) { lancId = addLancamento(payload).id; } // vínculo perdido: cria novo
+  } else {
+    lancId = addLancamento(payload).id;
+  }
+
+  _upsertProjecao(fixaId, mes, { valor: v, status: 'validado', lancId: lancId });
+  return { ok: true, valor: v, lancId: lancId };
+}
+
+/** Desfaz a validação: remove o override e o lançamento vinculado na DADOS. */
 function desvalidarFixa(fixaId, mes) {
+  var lancId = _lancIdDaProjecao(fixaId, mes);
+  if (lancId) { try { deleteLancamento(lancId); } catch (e) { /* já removido */ } }
   var shp = _sheetProjecao();
   var tp = _lerTabela(shp);
   var existente = _acharProjRow(tp, fixaId, mes);
