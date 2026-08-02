@@ -69,6 +69,7 @@ function irPara(tela){
   $('#periodoTopo').classList.toggle('hidden', tela!=='relatorio');
   if (tela==='relatorio' && !Estado.relatorioCarregado){ carregarRelatorio(); }
   if (tela==='fixas' && !Estado.fixasCarregado){ carregarFixas(); }
+  if (tela==='sonhos' && !Estado.sonhosCarregado){ carregarSonhos(); }
 }
 
 /* =====================================================================
@@ -131,6 +132,8 @@ function ligarEventos(){
   // fixas
   $('#addFixaBtn').addEventListener('click', function(){ abrirModalFixa(); });
   $('#fxAplicar').addEventListener('click', function(){ Estado.fixasCarregado=false; carregarFixas(); });
+  // sonhos
+  $('#addSonhoBtn').addEventListener('click', function(){ abrirModalSonho(); });
 }
 
 /* =====================================================================
@@ -765,6 +768,119 @@ function abrirModalFixa(id){
     op.then(function(){ fecharModal(); toast('Salvo!'); Estado.fixasCarregado=false; carregarFixas(); })
       .catch(function(e){ toast(e, true); }).then(function(){ $('#modalOk').disabled=false; });
   };
+}
+
+/* =====================================================================
+   Sonhos (metas de longo prazo)
+   ===================================================================== */
+var EMOJIS_SONHO = ['🎯','🏠','🚗','✈️','🏖️','🎓','💍','👶','💰','📱','💻','🏍️','⛵','🌎'];
+
+function carregarSonhos(){
+  $('#sonhosLista').innerHTML = '<div class="carregando">Carregando…</div>';
+  return run('listSonhos').then(function(d){
+    Estado.sonhos = d; Estado.sonhosCarregado = true;
+    renderSonhos();
+  }).catch(function(e){ $('#sonhosLista').innerHTML=''; toast(e, true); });
+}
+
+function renderSonhos(){
+  var r = Estado.sonhos.resumo;
+  $('#sonhosResumoTotal').textContent = brl(r.totalGuardado) + ' / ' + brl(r.totalAlvo);
+  $('#sonhosResumoSub').textContent = r.quantidade
+    ? ('Falta ' + brl(r.totalRestante) + (r.aporteNecessarioTotal>0 ? '  ·  guardar ~' + brl(r.aporteNecessarioTotal) + '/mês' : ''))
+    : 'Cadastre seu primeiro sonho 👇';
+  $('#sonhosBarra').style.width = (r.pct||0) + '%';
+
+  var lista = Estado.sonhos.sonhos;
+  if (!lista.length){ $('#sonhosLista').innerHTML = '<p class="lanc-meta">Nenhum sonho ainda. Clique em “＋ Novo sonho”.</p>'; return; }
+  $('#sonhosLista').innerHTML = lista.map(function(s){
+    var info = '';
+    if (s.concluido){
+      info = '<div class="sonho-info">🎉 Meta atingida! Parabéns.</div>';
+    } else {
+      var partes = [];
+      if (s.aporteNecessario!=null && s.dataAlvoBr) partes.push('Para '+s.dataAlvoBr+': guardar <strong>'+brl(s.aporteNecessario)+'/mês</strong>'+(s.mesesRestantes!=null?' ('+s.mesesRestantes+' meses)':''));
+      if (s.previsaoConclusao) partes.push('No seu ritmo ('+brl(s.aporteMensal)+'/mês): conclui em <strong>'+s.previsaoConclusao+'</strong>');
+      if (partes.length) info = '<div class="sonho-info">'+partes.join('<br>')+'</div>';
+    }
+    return '<div class="sonho'+(s.concluido?' concluido':'')+'">'
+      + '<div class="sonho-top"><div class="sonho-ico">'+esc(s.icone)+'</div>'
+        + '<div class="sonho-main"><div class="sonho-nome">'+esc(s.nome)+(s.concluido?' <span class="selo-ok">concluído</span>':'')+'</div>'
+        + '<div class="sonho-sub">'+(s.dataAlvoBr?('meta: '+s.dataAlvoBr):'sem data alvo')+'</div></div>'
+        + '<div class="sonho-pct">'+Math.round(s.pct)+'%</div></div>'
+      + '<div class="barra"><i style="width:'+Math.max(2,s.pct)+'%"></i></div>'
+      + '<div class="sonho-linha"><span class="lbl">Guardado</span><span><strong>'+brl(s.valorGuardado)+'</strong> de '+brl(s.valorAlvo)+'</span></div>'
+      + '<div class="sonho-linha"><span class="lbl">Falta</span><span>'+brl(s.restante)+'</span></div>'
+      + info
+      + '<div class="sonho-acoes">'
+        + (s.concluido?'':'<button class="btn-mini ok" onclick="abrirModalAporte(\''+s.id+'\')">＋ Guardar</button>')
+        + '<button class="btn-mini ghost" onclick="abrirModalSonho(\''+s.id+'\')">Editar</button>'
+        + '<button class="btn-mini ghost" onclick="excluirSonho(\''+s.id+'\')">Excluir</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+function abrirModalSonho(id){
+  var s = id ? Estado.sonhos.sonhos.find(function(x){ return x.id===id; }) : null;
+  Estado.sonhoIconeSel = s ? s.icone : '🎯';
+  $('#modalTitulo').textContent = s ? 'Editar sonho' : 'Novo sonho';
+  $('#modalCorpo').innerHTML =
+    '<label class="campo"><span class="rotulo">Nome</span><input id="soNome" value="'+esc(s?s.nome:'')+'" placeholder="Ex.: Casa própria"></label>'
+    + '<label class="campo"><span class="rotulo">Ícone</span><div class="emoji-pick" id="soIcones">'
+      + EMOJIS_SONHO.map(function(e){ return '<button type="button" data-e="'+e+'" class="'+(e===Estado.sonhoIconeSel?'sel':'')+'">'+e+'</button>'; }).join('')
+    + '</div></label>'
+    + '<div class="linha2">'
+      + '<label class="campo"><span class="rotulo">Valor alvo</span><input id="soAlvo" inputmode="numeric" value="'+(s?brl(s.valorAlvo):'')+'" placeholder="R$ 0,00"></label>'
+      + '<label class="campo"><span class="rotulo">Já guardado</span><input id="soGuardado" inputmode="numeric" value="'+(s?brl(s.valorGuardado):'')+'" placeholder="R$ 0,00"></label>'
+    + '</div>'
+    + '<div class="linha2">'
+      + '<label class="campo"><span class="rotulo">Data alvo</span><input id="soData" type="date" value="'+(s?s.dataAlvo:'')+'"></label>'
+      + '<label class="campo"><span class="rotulo">Aporte mensal</span><input id="soAporte" inputmode="numeric" value="'+(s&&s.aporteMensal?brl(s.aporteMensal):'')+'" placeholder="R$ 0,00"></label>'
+    + '</div>';
+  $('#modal').classList.remove('hidden');
+  $all('#soIcones button').forEach(function(b){
+    b.addEventListener('click', function(){ Estado.sonhoIconeSel=b.dataset.e;
+      $all('#soIcones button').forEach(function(x){ x.classList.remove('sel'); }); b.classList.add('sel'); });
+  });
+  ['soAlvo','soGuardado','soAporte'].forEach(function(idc){ var el=$('#'+idc); el.addEventListener('input', function(){ el.value=formatarValorInput(el.value); }); });
+  $('#modalOk').onclick = function(){
+    var payload = { nome:$('#soNome').value.trim(), icone:Estado.sonhoIconeSel,
+      valorAlvo:centavosParaNumero($('#soAlvo').value), valorGuardado:centavosParaNumero($('#soGuardado').value),
+      dataAlvo:$('#soData').value||'', aporteMensal:centavosParaNumero($('#soAporte').value) };
+    if (!payload.nome) return toast('Dê um nome ao sonho.', true);
+    if (!(payload.valorAlvo>0)) return toast('Informe o valor alvo.', true);
+    $('#modalOk').disabled = true;
+    var op = s ? run('updateSonho', s.id, payload) : run('addSonho', payload);
+    op.then(function(){ fecharModal(); toast('Salvo!'); Estado.sonhosCarregado=false; carregarSonhos(); })
+      .catch(function(e){ toast(e, true); }).then(function(){ $('#modalOk').disabled=false; });
+  };
+}
+
+function abrirModalAporte(sonhoId){
+  var s = Estado.sonhos.sonhos.find(function(x){ return x.id===sonhoId; });
+  $('#modalTitulo').textContent = 'Guardar em: '+(s?s.nome:'');
+  $('#modalCorpo').innerHTML =
+    '<label class="campo"><span class="rotulo">Quanto guardar</span><input id="apVal" inputmode="numeric" placeholder="R$ 0,00"></label>'
+    + '<label class="campo"><span class="rotulo">Data</span><input id="apData" type="date" value="'+(Estado.hoje||'')+'"></label>'
+    + '<label class="campo"><span class="rotulo">Observação (opcional)</span><input id="apObs" placeholder="Ex.: 13º salário"></label>';
+  $('#modal').classList.remove('hidden');
+  $('#apVal').addEventListener('input', function(){ this.value=formatarValorInput(this.value); });
+  setTimeout(function(){ $('#apVal').focus(); }, 50);
+  $('#modalOk').onclick = function(){
+    var valor = centavosParaNumero($('#apVal').value);
+    if (!(valor>0)) return toast('Informe o valor.', true);
+    $('#modalOk').disabled = true;
+    run('registrarAporte', sonhoId, valor, $('#apData').value||null, $('#apObs').value||'')
+      .then(function(){ fecharModal(); toast('Guardado! 🎉'); Estado.sonhosCarregado=false; carregarSonhos(); })
+      .catch(function(e){ toast(e, true); }).then(function(){ $('#modalOk').disabled=false; });
+  };
+}
+
+function excluirSonho(id){
+  var s = Estado.sonhos.sonhos.find(function(x){ return x.id===id; });
+  if (!confirm('Excluir o sonho "'+(s?s.nome:'')+'"? O histórico de aportes também será removido.')) return;
+  run('deleteSonho', id).then(function(){ toast('Excluído.'); Estado.sonhosCarregado=false; carregarSonhos(); })
+    .catch(function(e){ toast(e, true); });
 }
 
 /* --------- util --------- */

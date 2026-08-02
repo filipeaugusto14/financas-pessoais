@@ -33,6 +33,10 @@ const SHEET_FIXAS = 'FIXAS';            // modelos de despesa fixa
 const SHEET_FIXAS_PROJ = 'FIXAS_PROJECAO'; // validações/ajustes por mês
 const LIMITE_PARCELA_LONGA = 12;        // parcelamentos ACIMA disso contam como obrigação longa
 
+// Abas do módulo de sonhos (metas de longo prazo).
+const SHEET_SONHOS = 'SONHOS';
+const SHEET_SONHOS_APORTES = 'SONHOS_APORTES';
+
 // ------------------------------------------------------------------
 // Utilidades gerais
 // ------------------------------------------------------------------
@@ -293,11 +297,13 @@ function setup() {
   _garantirColunaId(abas.dados);
   _sheetFixas();      // cria a aba FIXAS se faltar
   _sheetProjecao();   // cria a aba FIXAS_PROJECAO se faltar
+  _sheetSonhos();     // cria a aba SONHOS se faltar
+  _sheetAportes();    // cria a aba SONHOS_APORTES se faltar
   var msg = 'setup OK\n' +
     '- Entrada: ' + abas.entrada.getName() + '\n' +
     '- DADOS:   ' + abas.dados.getName() + '\n' +
     '- Taxonomia: ' + (abas.taxonomia ? abas.taxonomia.getName() : '(não encontrada)') + '\n' +
-    '- ' + SHEET_FIXAS + ' e ' + SHEET_FIXAS_PROJ + ' prontas.';
+    '- ' + SHEET_FIXAS + ', ' + SHEET_FIXAS_PROJ + ', ' + SHEET_SONHOS + ' e ' + SHEET_SONHOS_APORTES + ' prontas.';
   Logger.log(msg);
   return msg;
 }

@@ -233,6 +233,33 @@
   .gerenciar-item .g-main small { color: var(--texto-suave); font-size: 12px; }
   .g-inativo { opacity: .5; }
 
+  /* Tela Sonhos */
+  .destaque-sonhos { background: linear-gradient(135deg, #4c1d95, #7c3aed); color: #fff; border: none; }
+  .destaque-sonhos .kpi-rot { color: rgba(255,255,255,.8); }
+  .barra-grande { height: 12px; background: rgba(255,255,255,.25); border-radius: 999px; margin-top: 12px; overflow: hidden; }
+  .barra-grande > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg,#fbbf24,#f59e0b); transition: width .4s; }
+  .sonho { padding: 16px 4px; border-bottom: 1px solid var(--borda); }
+  .sonho:last-child { border-bottom: none; }
+  .sonho.concluido .sonho-nome { color: var(--receita); }
+  .sonho-top { display: flex; align-items: center; gap: 12px; }
+  .sonho-ico { font-size: 26px; width: 44px; height: 44px; flex: 0 0 auto; display: grid; place-items: center;
+    background: #f5f3ff; border-radius: 12px; }
+  .sonho-main { flex: 1 1 auto; min-width: 0; }
+  .sonho-nome { font-weight: 700; font-size: 16px; }
+  .sonho-sub { font-size: 12px; color: var(--texto-suave); }
+  .sonho-pct { font-weight: 800; color: var(--primaria); white-space: nowrap; }
+  .sonho .barra { height: 8px; margin-top: 10px; }
+  .sonho .barra > i { background: linear-gradient(90deg,#7c3aed,#a855f7); }
+  .sonho.concluido .barra > i { background: var(--receita); }
+  .sonho-linha { display: flex; justify-content: space-between; font-size: 13px; margin-top: 8px; }
+  .sonho-linha .lbl { color: var(--texto-suave); }
+  .sonho-info { background: #f5f3ff; border-radius: 10px; padding: 8px 12px; font-size: 12px; color: #5b21b6; margin-top: 10px; }
+  .sonho-acoes { display: flex; gap: 8px; margin-top: 12px; }
+  .selo-ok { background: var(--receita-bg); color: var(--receita); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .emoji-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+  .emoji-pick button { font-size: 20px; width: 40px; height: 40px; border: 1px solid var(--borda); background: #fff; border-radius: 10px; cursor: pointer; }
+  .emoji-pick button.sel { border-color: var(--primaria); background: #eff6ff; }
+
   /* Toast */
   .toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(20px);
     background: #0f172a; color: #fff; padding: 12px 18px; border-radius: 12px; font-weight: 600;

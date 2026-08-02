@@ -141,6 +141,22 @@
       </div>
     </section>
 
+    <!-- ============ TELA: SONHOS ============ -->
+    <section id="tela-sonhos" class="tela">
+      <div class="card destaque-sonhos">
+        <div class="kpi-rot">Progresso dos seus sonhos</div>
+        <div id="sonhosResumoTotal" class="fixas-total">R$ 0,00</div>
+        <div id="sonhosResumoSub" class="fixas-quebra"></div>
+        <div class="barra-grande"><i id="sonhosBarra" style="width:0%"></i></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Meus sonhos</h2>
+          <button type="button" id="addSonhoBtn" class="link-btn">＋ Novo sonho</button></div>
+        <div id="sonhosLista"></div>
+      </div>
+    </section>
+
     <!-- Navegação inferior -->
     <nav class="tabbar">
       <button class="tab ativo" data-tela="lancar">
@@ -148,6 +164,9 @@
       </button>
       <button class="tab" data-tela="fixas">
         <span class="tab-ico">📌</span><span>Fixas</span>
+      </button>
+      <button class="tab" data-tela="sonhos">
+        <span class="tab-ico">🎯</span><span>Sonhos</span>
       </button>
       <button class="tab" data-tela="relatorio">
         <span class="tab-ico">▚</span><span>Relatório</span>
