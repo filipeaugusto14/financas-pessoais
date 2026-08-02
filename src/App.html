@@ -617,10 +617,12 @@ function renderFixasMes(){
         : '<span class="selo previsto">previsto</span>';
       var valInput = (f.status==='validado'? f.validado : f.previsto);
       var tagFreq = f.frequencia==='anual' ? ' · <strong>anual</strong>' : '';
+      var ref = dataRefFixa(Estado.fixasMesSel, f.dia);
       return '<div class="fixa-item" data-id="'+f.fixaId+'">'
         + '<div class="fixa-top"><div class="fixa-nome">'+esc(f.descricao)
           + '<small>'+esc(f.categoria)+' › '+esc(f.subcategoria)+tagFreq+'</small></div>'
         + '<div class="fixa-valor">'+brl(f.valor)+' '+selo+'</div></div>'
+        + '<div class="fixa-ref">📅 Referência: <strong>'+ref+'</strong></div>'
         + '<div class="fixa-acoes">'
           + '<input type="text" class="fx-val" value="'+brl(valInput)+'" inputmode="numeric">'
           + '<button type="button" class="btn-mini ok" onclick="validarFixaUI(\''+f.fixaId+'\')">Validar</button>'
@@ -677,6 +679,15 @@ function aplicarValidacaoLocal(fixaId, mes, valor, status){
   m.total = _round2local(m.totalFixas + m.totalParcelas);
 }
 function _round2local(n){ return Math.round((n+Number.EPSILON)*100)/100; }
+
+// data de referência (vencimento) de uma fixa no mês selecionado
+function dataRefFixa(mesChave, dia){
+  if (!mesChave) return '';
+  var p = String(mesChave).split('-'); var y=+p[0], m=+p[1];
+  var ult = new Date(y, m, 0).getDate();
+  var d = Math.min(dia||1, ult);
+  return ('0'+d).slice(-2)+'/'+('0'+m).slice(-2)+'/'+String(y).slice(2);
+}
 
 function renderGerenciarFixas(){
   var t = Estado.fixas.templates;
