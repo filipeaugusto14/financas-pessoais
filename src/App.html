@@ -13,6 +13,7 @@ var Estado = {
 };
 var PALETA = ['#2563eb','#e11d48','#16a34a','#f59e0b','#7c3aed','#0891b2',
               '#db2777','#65a30d','#ea580c','#0d9488','#4f46e5','#a16207'];
+var MESES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 function $(s, r){ return (r||document).querySelector(s); }
 function $all(s, r){ return [].slice.call((r||document).querySelectorAll(s)); }
@@ -609,9 +610,10 @@ function renderFixasMes(){
         ? '<span class="selo validado">✓ validado</span>'
         : '<span class="selo previsto">previsto</span>';
       var valInput = (f.status==='validado'? f.validado : f.previsto);
+      var tagFreq = f.frequencia==='anual' ? ' · <strong>anual</strong>' : '';
       return '<div class="fixa-item" data-id="'+f.fixaId+'">'
         + '<div class="fixa-top"><div class="fixa-nome">'+esc(f.descricao)
-          + '<small>'+esc(f.categoria)+' › '+esc(f.subcategoria)+'</small></div>'
+          + '<small>'+esc(f.categoria)+' › '+esc(f.subcategoria)+tagFreq+'</small></div>'
         + '<div class="fixa-valor">'+brl(f.valor)+' '+selo+'</div></div>'
         + '<div class="fixa-acoes">'
           + '<input type="text" class="fx-val" value="'+brl(valInput)+'" inputmode="numeric">'
@@ -674,9 +676,12 @@ function renderGerenciarFixas(){
   var t = Estado.fixas.templates;
   if (!t.length){ $('#gerenciarFixas').innerHTML='<p class="lanc-meta">Nenhuma despesa fixa cadastrada.</p>'; return; }
   $('#gerenciarFixas').innerHTML = t.map(function(f){
+    var freqTxt = f.frequencia==='anual'
+      ? (f.mesBase ? 'anual · '+MESES_NOME[f.mesBase-1] : '<span style="color:var(--despesa)">anual · defina o mês</span>')
+      : 'mensal';
     return '<div class="gerenciar-item'+(f.ativo?'':' g-inativo')+'">'
       + '<div class="g-main"><strong>'+esc(f.descricao)+'</strong>'
-        + '<small>'+esc(f.categoria)+' › '+esc(f.subcategoria)+' · base '+brl(f.valorBase)+' · dia '+f.dia+'</small></div>'
+        + '<small>'+esc(f.categoria)+' › '+esc(f.subcategoria)+' · base '+brl(f.valorBase)+' · dia '+f.dia+' · '+freqTxt+'</small></div>'
       + '<button class="icon-btn" title="'+(f.ativo?'Desativar':'Ativar')+'" onclick="toggleFixa(\''+f.id+'\','+(!f.ativo)+')">'+(f.ativo?'⏸':'▶')+'</button>'
       + '<button class="icon-btn" title="Editar" onclick="abrirModalFixa(\''+f.id+'\')">✎</button>'
       + '<button class="icon-btn" title="Excluir" onclick="excluirFixa(\''+f.id+'\')">🗑</button>'
@@ -706,8 +711,20 @@ function abrirModalFixa(id){
     + '<div class="linha2">'
       + '<label class="campo"><span class="rotulo">Valor base</span><input id="fxVal" inputmode="numeric" value="'+(f?brl(f.valorBase):'')+'" placeholder="R$ 0,00"></label>'
       + '<label class="campo"><span class="rotulo">Dia venc.</span><input id="fxDia" type="number" min="1" max="28" value="'+(f?f.dia:'5')+'"></label>'
+    + '</div>'
+    + '<div class="linha2">'
+      + '<label class="campo"><span class="rotulo">Frequência</span><select id="fxFreq">'
+        + '<option value="mensal"'+(f&&f.frequencia==='anual'?'':' selected')+'>Mensal</option>'
+        + '<option value="anual"'+(f&&f.frequencia==='anual'?' selected':'')+'>Anual</option>'
+      + '</select></label>'
+      + '<label class="campo" id="fxMesWrap"><span class="rotulo">Mês de cobrança</span><select id="fxMes">'
+        + MESES_NOME.map(function(nm,idx){ return '<option value="'+(idx+1)+'"'+(f&&f.mesBase===(idx+1)?' selected':'')+'>'+nm+'</option>'; }).join('')
+      + '</select></label>'
     + '</div>';
   $('#modal').classList.remove('hidden');
+  function ajustarMesVisivel(){ $('#fxMesWrap').style.display = ($('#fxFreq').value==='anual') ? '' : 'none'; }
+  ajustarMesVisivel();
+  $('#fxFreq').addEventListener('change', ajustarMesVisivel);
   function preencherSubs(){
     var cat = $('#fxCat').value;
     var subs = ((Estado.taxonomia.porTipo.Despesa||{})[cat]||[]).slice().sort();
@@ -718,7 +735,8 @@ function abrirModalFixa(id){
   $('#fxVal').addEventListener('input', function(){ this.value = formatarValorInput(this.value); });
   $('#modalOk').onclick = function(){
     var payload = { descricao:$('#fxDesc').value.trim(), categoria:$('#fxCat').value, subcategoria:$('#fxSub').value,
-      valorBase:centavosParaNumero($('#fxVal').value), dia:parseInt($('#fxDia').value,10)||5, ativo:true };
+      valorBase:centavosParaNumero($('#fxVal').value), dia:parseInt($('#fxDia').value,10)||5, ativo:true,
+      frequencia:$('#fxFreq').value, mesBase: $('#fxFreq').value==='anual' ? parseInt($('#fxMes').value,10) : null };
     if (!payload.descricao) return toast('Informe a descrição.', true);
     $('#modalOk').disabled = true;
     var op = f ? run('updateFixa', f.id, payload) : run('addFixaManual', payload);
