@@ -34,7 +34,15 @@ function _ensureSheet(nome, header) {
   return sh;
 }
 function _sheetFixas() { return _ensureSheet(SHEET_FIXAS, HEADER_FIXAS); }
-function _sheetProjecao() { return _ensureSheet(SHEET_FIXAS_PROJ, HEADER_PROJ); }
+function _sheetProjecao() {
+  var sh = _ensureSheet(SHEET_FIXAS_PROJ, HEADER_PROJ);
+  // trava a coluna MES como texto, para o Sheets não converter '2026-07' em data
+  var t = _lerTabela(sh);
+  if (t.col['MES'] != null && sh.getMaxRows() > 1) {
+    sh.getRange(2, t.col['MES'] + 1, sh.getMaxRows() - 1, 1).setNumberFormat('@');
+  }
+  return sh;
+}
 
 /** Lê uma aba simples (cabeçalho na linha 1) mapeando colunas por NOME normalizado. */
 function _lerTabela(sheet) {
@@ -67,7 +75,7 @@ function upsertFixa(p) {
   var categoria = String(p.categoria || '').trim();
   var subcategoria = String(p.subcategoria || '').trim();
   var valorBase = _round2(Number(String(p.valorBase).replace(',', '.')) || 0);
-  var dia = Math.min(28, Math.max(1, parseInt(p.dia, 10) || 1));
+  var dia = Math.min(31, Math.max(1, parseInt(p.dia, 10) || 1));
   var ativo = p.ativo === false ? false : true;
   var frequencia = _normFreq(p.frequencia);
   var mesBase = frequencia === 'anual' ? (_mesBaseValido(p.mesBase) || '') : '';
@@ -118,7 +126,7 @@ function updateFixa(id, payload) {
   if (payload.categoria != null) _setCel(sh, r, t.col['CATEGORIA'], String(payload.categoria).trim());
   if (payload.subcategoria != null) _setCel(sh, r, t.col['SUBCATEGORIA'], String(payload.subcategoria).trim());
   if (payload.valorBase != null) _setCel(sh, r, t.col['VALOR_BASE'], _round2(Number(String(payload.valorBase).replace(',', '.')) || 0));
-  if (payload.dia != null) _setCel(sh, r, t.col['DIA'], Math.min(28, Math.max(1, parseInt(payload.dia, 10) || 1)));
+  if (payload.dia != null) _setCel(sh, r, t.col['DIA'], Math.min(31, Math.max(1, parseInt(payload.dia, 10) || 1)));
   if (payload.ativo != null) _setCel(sh, r, t.col['ATIVO'], payload.ativo === true || payload.ativo === 'true');
   if (payload.frequencia != null) {
     var freq = _normFreq(payload.frequencia);
@@ -149,8 +157,9 @@ function deleteFixa(id) {
 // Validação por mês (overrides)
 // ------------------------------------------------------------------
 function _acharProjRow(tp, fixaId, mes) {
+  var alvoMes = _mesKey(mes);
   return tp.rows.find(function (r) {
-    return String(r.vals[tp.col['FIXA_ID']]) === String(fixaId) && String(r.vals[tp.col['MES']]) === String(mes);
+    return String(r.vals[tp.col['FIXA_ID']]) === String(fixaId) && _mesKey(r.vals[tp.col['MES']]) === alvoMes;
   });
 }
 
@@ -286,7 +295,7 @@ function getControleFixas(inicio, fim) {
   var tp = _lerTabela(shp);
   var overrides = {};
   tp.rows.forEach(function (r) {
-    var k = String(r.vals[tp.col['FIXA_ID']]) + '|' + String(r.vals[tp.col['MES']]);
+    var k = String(r.vals[tp.col['FIXA_ID']]) + '|' + _mesKey(r.vals[tp.col['MES']]);
     overrides[k] = { valor: _round2(r.vals[tp.col['VALOR']] || 0), status: String(r.vals[tp.col['STATUS']] || 'validado') };
   });
 

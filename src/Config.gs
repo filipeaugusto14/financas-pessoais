@@ -98,6 +98,22 @@ function _chaveMes(data) {
   return Utilities.formatDate(data, TZ, 'yyyy-MM');
 }
 
+/**
+ * Normaliza um valor de mês para 'yyyy-MM', seja ele string ('2026-07'),
+ * Date (caso o Sheets tenha convertido o texto em data) ou 'dd/MM/yyyy'.
+ */
+function _mesKey(v) {
+  if (v instanceof Date && !isNaN(v)) {
+    return v.getFullYear() + '-' + ('0' + (v.getMonth() + 1)).slice(-2);
+  }
+  var s = String(v == null ? '' : v).trim();
+  var m = s.match(/^(\d{4})-(\d{1,2})/);
+  if (m) return m[1] + '-' + ('0' + m[2]).slice(-2);
+  var d = _paraData(s);
+  if (d) return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2);
+  return s;
+}
+
 /** Converte número em texto "R$ 1.234,56". */
 function _brl(n) {
   var s = (Math.abs(Number(n)) || 0).toFixed(2).replace('.', ',');
