@@ -84,6 +84,38 @@ function addFixaManual(payload) {
   return { ok: true, id: id };
 }
 
+/**
+ * Carga inicial das despesas fixas atuais (rode UMA vez no editor).
+ * Idempotente: usa upsertFixa (dedup por descrição), então pode rodar de novo
+ * sem duplicar. Depois de rodar, pode apagar esta função se quiser.
+ */
+function seedFixasIniciais() {
+  var lista = [
+    { dia: 8,  valorBase: 69.90,   descricao: 'App Grit',              subcategoria: 'Apps',                   categoria: 'Assinaturas' },
+    { dia: 15, valorBase: 1542.86, descricao: 'Seguro do carro',       subcategoria: 'Seguro veículo',         categoria: 'Transporte' },
+    { dia: 16, valorBase: 118.58,  descricao: 'Claude',                subcategoria: 'IA',                     categoria: 'Assinaturas' },
+    { dia: 17, valorBase: 20.90,   descricao: 'Assinatura Netflix',    subcategoria: 'Streaming',              categoria: 'Lazer' },
+    { dia: 18, valorBase: 11.48,   descricao: 'Seguro Residencial',    subcategoria: 'Seguro residencial',     categoria: 'Moradia' },
+    { dia: 19, valorBase: 45.00,   descricao: 'Mensalidade de Celular',subcategoria: 'Telefonia',              categoria: 'Assinaturas' },
+    { dia: 21, valorBase: 149.90,  descricao: 'Mensalidade Academia',  subcategoria: 'Academia',               categoria: 'Saúde' },
+    { dia: 25, valorBase: 19.90,   descricao: 'Icloud',                subcategoria: 'Cloud',                  categoria: 'Assinaturas' },
+    { dia: 26, valorBase: 19.90,   descricao: 'Smart Nutri',           subcategoria: 'Exames',                 categoria: 'Saúde' },
+    { dia: 27, valorBase: 149.90,  descricao: 'Strava',                subcategoria: 'Esportes',               categoria: 'Saúde' },
+    { dia: 30, valorBase: 169.90,  descricao: 'Barbearia Paradise',    subcategoria: 'Outros gastos de lazer', categoria: 'Lazer' },
+    { dia: 30, valorBase: 340.00,  descricao: 'Psicologo',             subcategoria: 'Terapia',                categoria: 'Saúde' },
+    { dia: 6,  valorBase: 2420.12, descricao: 'Plano Prudential',      subcategoria: 'Seguro de vida',         categoria: 'Investimentos' },
+    { dia: 8,  valorBase: 2435.13, descricao: 'Aluguel do apartamento',subcategoria: 'Aluguel',                categoria: 'Moradia' }
+  ];
+  var n = 0;
+  lista.forEach(function (x) {
+    upsertFixa({ descricao: x.descricao, categoria: x.categoria, subcategoria: x.subcategoria, valorBase: x.valorBase, dia: x.dia, ativo: true });
+    n++;
+  });
+  var msg = 'Cadastradas/atualizadas ' + n + ' despesas fixas.';
+  Logger.log(msg);
+  return msg;
+}
+
 function updateFixa(id, payload) {
   var sh = _sheetFixas();
   var t = _lerTabela(sh, HEADER_FIXAS);
