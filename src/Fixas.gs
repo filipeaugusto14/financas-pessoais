@@ -185,7 +185,11 @@ function desvalidarFixa(fixaId, mes) {
 // ------------------------------------------------------------------
 // Painel consolidado (12 meses)
 // ------------------------------------------------------------------
-function getControleFixas() {
+/**
+ * @param {string} inicio 'yyyy-MM-dd' opcional (padrão: 1º dia do mês passado)
+ * @param {string} fim 'yyyy-MM-dd' opcional (padrão: mês atual + 12)
+ */
+function getControleFixas(inicio, fim) {
   var shf = _sheetFixas();
   var tf = _lerTabela(shf);
   var templates = tf.rows.map(function (r) {
@@ -216,9 +220,10 @@ function getControleFixas() {
   var parcelasPorMes = _parcelasLongasPorMes(_lerDados());
 
   var hoje = new Date();
+  var mesesDates = _rangeMeses(inicio, fim);
   var meses = [];
-  for (var i = 0; i < 12; i++) {
-    var d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+  for (var i = 0; i < mesesDates.length; i++) {
+    var d = mesesDates[i];
     var mes = _chaveMes(d);
     var mesNum = d.getMonth() + 1;
     var fixasMes = [];
@@ -250,7 +255,29 @@ function getControleFixas() {
     });
   }
 
-  return { mesAtual: _chaveMes(hoje), meses: meses, templates: templates };
+  var inicioStr = Utilities.formatDate(mesesDates[0], TZ, 'yyyy-MM-dd');
+  var ultimo = mesesDates[mesesDates.length - 1];
+  var fimStr = Utilities.formatDate(new Date(ultimo.getFullYear(), ultimo.getMonth() + 1, 0), TZ, 'yyyy-MM-dd');
+  return { mesAtual: _chaveMes(hoje), inicio: inicioStr, fim: fimStr, meses: meses, templates: templates };
+}
+
+/** Lista de Dates (1º dia de cada mês) do intervalo. Padrão: mês passado -> atual+12. */
+function _rangeMeses(inicio, fim) {
+  var hoje = new Date();
+  var di = inicio ? _paraData(inicio) : new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+  var df = fim ? _paraData(fim) : new Date(hoje.getFullYear(), hoje.getMonth() + 12, 1);
+  if (!di) di = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+  if (!df) df = new Date(hoje.getFullYear(), hoje.getMonth() + 12, 1);
+  var start = new Date(di.getFullYear(), di.getMonth(), 1);
+  var end = new Date(df.getFullYear(), df.getMonth(), 1);
+  if (end < start) { var tmp = start; start = end; end = tmp; }
+  var meses = [], d = new Date(start), guard = 0;
+  while (d <= end && guard < 60) {
+    meses.push(new Date(d));
+    d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    guard++;
+  }
+  return meses;
 }
 
 /** Agrupa parcelas longas (total > LIMITE) por mês, lendo a aba DADOS. */

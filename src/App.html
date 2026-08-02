@@ -130,6 +130,7 @@ function ligarEventos(){
   $('#modal').addEventListener('click', function(e){ if(e.target===$('#modal')) fecharModal(); });
   // fixas
   $('#addFixaBtn').addEventListener('click', function(){ abrirModalFixa(); });
+  $('#fxAplicar').addEventListener('click', function(){ Estado.fixasCarregado=false; carregarFixas(); });
 }
 
 /* =====================================================================
@@ -572,9 +573,14 @@ function graficoFuturas(futuras){
    ===================================================================== */
 function carregarFixas(){
   $('#fixasLista').innerHTML = '<div class="carregando">Carregando…</div>';
-  return run('getControleFixas').then(function(ctrl){
+  var ini = $('#fxIni').value || null, fim = $('#fxFim').value || null;
+  return run('getControleFixas', ini, fim).then(function(ctrl){
     Estado.fixas = ctrl; Estado.fixasCarregado = true;
-    Estado.fixasMesSel = ctrl.mesAtual;
+    // seleciona o mês atual se estiver no intervalo, senão o primeiro
+    var existeAtual = ctrl.meses.some(function(m){ return m.mes===ctrl.mesAtual; });
+    Estado.fixasMesSel = existeAtual ? ctrl.mesAtual : (ctrl.meses[0] && ctrl.meses[0].mes);
+    if (ctrl.inicio) $('#fxIni').value = ctrl.inicio;
+    if (ctrl.fim) $('#fxFim').value = ctrl.fim;
     renderFixasMeses();
     renderFixasMes();
     renderGerenciarFixas();
