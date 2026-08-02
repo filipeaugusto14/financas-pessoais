@@ -1,0 +1,14 @@
+# clasp / credenciais
+.clasp.json
+.clasprc.json
+*.clasp.json
+
+# Node
+node_modules/
+npm-debug.log*
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

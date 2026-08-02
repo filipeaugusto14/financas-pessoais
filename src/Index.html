@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <div id="app" class="app">
+    <!-- Cabeçalho -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <h1 id="appNome">Minhas Finanças</h1>
+      </div>
+      <div id="periodoTopo" class="topbar-sub hidden"></div>
+    </header>
+
+    <!-- ============ TELA: LANÇAR ============ -->
+    <section id="tela-lancar" class="tela ativa">
+      <form id="form" class="card form" autocomplete="off">
+        <input type="hidden" id="editId" value="">
+
+        <div class="seg" id="segTipo">
+          <button type="button" class="seg-btn ativo" data-tipo="Despesa">Despesa</button>
+          <button type="button" class="seg-btn" data-tipo="Receita">Receita</button>
+        </div>
+
+        <label class="campo campo-valor">
+          <span class="rotulo">Valor</span>
+          <input id="valor" class="input-valor" inputmode="numeric" placeholder="R$ 0,00" aria-label="Valor">
+        </label>
+
+        <div class="linha2">
+          <label class="campo">
+            <span class="rotulo">Data</span>
+            <input id="data" type="date">
+          </label>
+          <label class="campo">
+            <span class="rotulo">Parcelas</span>
+            <div class="stepper">
+              <button type="button" id="parcMenos" aria-label="Menos">−</button>
+              <input id="parcelas" type="number" min="1" max="360" value="1" inputmode="numeric">
+              <button type="button" id="parcMais" aria-label="Mais">+</button>
+            </div>
+          </label>
+        </div>
+        <div id="parcelaPreview" class="preview hidden"></div>
+
+        <label class="campo">
+          <span class="rotulo">Descrição</span>
+          <input id="descricao" list="listaDesc" placeholder="Ex.: Aluguel do apartamento">
+          <datalist id="listaDesc"></datalist>
+        </label>
+
+        <div class="linha2">
+          <label class="campo">
+            <span class="rotulo">Categoria</span>
+            <select id="categoria"></select>
+          </label>
+          <label class="campo">
+            <span class="rotulo">Subcategoria</span>
+            <select id="subcategoria"></select>
+          </label>
+        </div>
+        <button type="button" id="novaSub" class="link-btn">＋ Nova subcategoria</button>
+
+        <div class="acoes">
+          <button type="submit" id="salvar" class="btn-principal">Salvar lançamento</button>
+          <button type="button" id="cancelarEdicao" class="btn-secundario hidden">Cancelar edição</button>
+        </div>
+      </form>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Últimos lançamentos</h2>
+          <button type="button" id="recarregarUltimos" class="link-btn">Atualizar</button>
+        </div>
+        <ul id="listaUltimos" class="lista-lanc"></ul>
+      </div>
+    </section>
+
+    <!-- ============ TELA: RELATÓRIO ============ -->
+    <section id="tela-relatorio" class="tela">
+      <div class="card periodo">
+        <div class="chips" id="chipsPeriodo">
+          <button type="button" class="chip ativo" data-preset="mes">Mês atual</button>
+          <button type="button" class="chip" data-preset="mespassado">Mês passado</button>
+          <button type="button" class="chip" data-preset="ano">Ano</button>
+          <button type="button" class="chip" data-preset="12m">12 meses</button>
+        </div>
+        <div class="custom-datas">
+          <input id="dtIni" type="date"><span>até</span><input id="dtFim" type="date">
+          <button type="button" id="aplicarPeriodo" class="btn-secundario">Aplicar</button>
+        </div>
+      </div>
+
+      <div id="relatorioConteudo">
+        <div id="carregandoRel" class="carregando">Carregando…</div>
+      </div>
+    </section>
+
+    <!-- Navegação inferior -->
+    <nav class="tabbar">
+      <button class="tab ativo" data-tela="lancar">
+        <span class="tab-ico">＋</span><span>Lançar</span>
+      </button>
+      <button class="tab" data-tela="relatorio">
+        <span class="tab-ico">▚</span><span>Relatório</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Modal simples (nova subcategoria) -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <h3 id="modalTitulo">Nova subcategoria</h3>
+      <div id="modalCorpo"></div>
+      <div class="modal-acoes">
+        <button type="button" id="modalCancelar" class="btn-secundario">Cancelar</button>
+        <button type="button" id="modalOk" class="btn-principal">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <?!= include('App'); ?>
+</body>
+</html>
